@@ -29,6 +29,7 @@ type config struct {
 			Services []struct {
 				Name    string   `yaml:"name"`
 				Aliases []string `yaml:"aliases"`
+				Port    string `yaml:"port"`
 			} `yaml:"services"`
 		} `yaml:"namespaces"`
 	} `yaml:"contexts"`
@@ -65,6 +66,7 @@ func readConfig(log *logrus.Logger, configPath string) (string, []*target, error
 					namespace: ns.Name,
 					service:   svc.Name,
 					aliases:   svc.Aliases,
+					port: svc.Port,
 					ports:     map[string]string{},
 				})
 			}
@@ -105,6 +107,7 @@ type target struct {
 	addr     string            // assigned local ip
 	ports    map[string]string // detected ports (number->name,proto)
 	conflict bool              // cross-context name collision
+	port     string            // direct override for single port forwarding
 }
 
 // local is a unique id within a context

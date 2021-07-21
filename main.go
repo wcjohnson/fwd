@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,10 +17,10 @@ func main() {
 	)
 	pflag.Parse()
 
-	if os.Geteuid() != 0 {
-		fmt.Println("fwd must run as root")
-		os.Exit(1)
-	}
+	// if os.Geteuid() != 0 {
+	// 	fmt.Println("fwd must run as root")
+	// 	os.Exit(1)
+	// }
 
 	log := &logrus.Logger{
 		Out:       os.Stdout,

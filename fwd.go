@@ -60,6 +60,7 @@ func (f *fwd) run(ctx context.Context) error {
 	}
 	for i := 0; i < len(f.targets); i++ {
 		t := f.targets[i]
+		if t.port != "" { continue }
 		t.addr = ips[i]                   // set addr (ips have same length)
 		hosts.RemoveAddress(t.addr)       // remove old entries
 		hosts.AddHost(t.addr, t.global()) // add global fwd
@@ -70,17 +71,17 @@ func (f *fwd) run(ctx context.Context) error {
 			hosts.AddHost(t.addr, alias) // add aliases (globally unique)
 		}
 	}
-	if err := hosts.Save(); err != nil {
-		return fmt.Errorf("failed to write hosts file: %v", err)
-	}
+	// if err := hosts.Save(); err != nil {
+	// 	return fmt.Errorf("failed to write hosts file: %v", err)
+	// }
 	defer func() {
 		f.log.Info("cleaning up hosts...")
 		for _, ip := range ips {
 			hosts.RemoveAddress(ip)
 		}
-		if err := hosts.Save(); err != nil {
-			f.log.Warnf("failed to cleanup hosts: %v", err)
-		}
+		// if err := hosts.Save(); err != nil {
+		// 	f.log.Warnf("failed to cleanup hosts: %v", err)
+		// }
 	}()
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -244,16 +245,24 @@ func (f *fwd) fillPorts() ([]string, error) {
 // spawns an always-on kubectl port-forward that auto-retries until ctx.done
 func (f *fwd) child(ctx context.Context, t *target) func() error {
 	return func() error {
-		ports := make([]string, 0, len(t.ports))
-		for num, txt := range t.ports {
-			f.log.Infof("forwarding %s:%s (%s)", t.global(), num, txt)
-			if !t.conflict {
-				f.log.Infof("forwarding %s:%s (%s)", t.local(), num, txt)
+		var ports []string
+		if t.port != "" {
+			ports = make([]string, 1)
+			ports[0] = t.port
+			t.addr = "0.0.0.0"
+			f.log.Infof("forwarding %s: 0.0.0.0 %s", t.global(), t.port)
+		} else {
+			ports = make([]string, 0, len(t.ports))
+			for num, txt := range t.ports {
+				f.log.Infof("forwarding %s:%s (%s)", t.global(), num, txt)
+				if !t.conflict {
+					f.log.Infof("forwarding %s:%s (%s)", t.local(), num, txt)
+				}
+				for _, alias := range t.aliases {
+					f.log.Infof("forwarding %s:%s (%s)", alias, num, txt)
+				}
+				ports = append(ports, num)
 			}
-			for _, alias := range t.aliases {
-				f.log.Infof("forwarding %s:%s (%s)", alias, num, txt)
-			}
-			ports = append(ports, num)
 		}
 		for {
 			err := f.kubectl.forward(ctx, t.context, t.namespace, t.service, ports, t.addr)

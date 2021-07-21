@@ -1,0 +1,7 @@
+contexts:
+- name: minikube
+  namespaces:
+  - name: default
+    services:
+    - name: envoy-load-balancer
+      port: "3000:80"

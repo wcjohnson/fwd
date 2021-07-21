@@ -103,6 +103,8 @@ func (kubectlExec) forward(ctx context.Context, kctx string, ns string, svc stri
 	for _, port := range ports {
 		cmd.Args = append(cmd.Args, port)
 	}
+	fmt.Printf("executing: %s %v", cmd.Path, cmd.Args)
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return fmt.Errorf("pipe failed: %w", err)
